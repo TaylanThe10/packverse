@@ -1191,5 +1191,5 @@ return {show,leave,exportState,importState,pendingRewards,dailyReady,render:()=>
 TAB_RENDER.packs=function(){PV.show()};
 
 </script>
-<script>if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{})})}</script>
+<script>if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){const had=!!navigator.serviceWorker.controller;let refreshed=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!refreshed){refreshed=true;location.reload()}});addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{})})}</script>
 </body></html>
