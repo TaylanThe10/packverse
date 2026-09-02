@@ -1,5 +1,5 @@
 // PackVerse service worker — caches the whole app so it opens with no connection.
-const VERSION = '20260901-1510';
+const VERSION = '20260902-1128';
 const CACHE = 'packverse-' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => {

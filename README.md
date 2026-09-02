@@ -1,7 +1,9 @@
 # PackVerse
 
 Pack opening, pack battles, item deals and casino originals (Dice, Mines, Plinko,
-Crash, Chicken Cross) with play money, built on the MarketVerse item catalog.
+Crash, Chicken Cross) merged with the Rarivo market — live collectible and crypto
+prices, portfolio, friends and payments — behind one username/password login with
+one shared wallet. Everything you pull lands in your portfolio.
 One HTML file, no build step, no server.
 
 ## Running it
