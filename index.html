@@ -441,6 +441,69 @@
 .pv.pv .tt.safe{background:radial-gradient(circle,rgba(61,220,110,.4),rgba(61,220,110,.1));border-color:var(--up);color:var(--up)}
 .pv.pv .tt.void{background:radial-gradient(circle,rgba(255,77,109,.45),rgba(255,77,109,.1));border-color:var(--down);color:var(--down)}
 
+
+/* ---------- game boards: asteroid chips, star charts, launch gantry ---------- */
+/* Asteroid Field — tiles are rocks, not grey squares */
+.pv.pv .mgrid{position:relative}
+.pv.pv .mt{border-radius:12px;border:1px solid rgba(255,255,255,.10);color:transparent;
+  background:radial-gradient(120% 120% at 30% 22%,#3C4250 0%,#2B303C 45%,#1C2029 100%);
+  box-shadow:0 3px 0 #0c0e14,inset 0 1px 0 rgba(255,255,255,.14),inset 0 -6px 12px rgba(0,0,0,.45);
+  position:relative;overflow:hidden;transition:transform .12s,box-shadow .2s,background .25s}
+.pv.pv .mt::before{content:'';position:absolute;width:26%;height:26%;border-radius:50%;left:18%;top:52%;background:rgba(0,0,0,.3);box-shadow:inset 0 1px 1px rgba(255,255,255,.12)}
+.pv.pv .mt::after{content:'';position:absolute;width:15%;height:15%;border-radius:50%;right:22%;top:22%;background:rgba(0,0,0,.26)}
+.pv.pv .mt:not(:disabled):active{transform:scale(.92);box-shadow:0 1px 0 #0c0e14,inset 0 -3px 8px rgba(0,0,0,.5)}
+.pv.pv .mt.gem{color:#EAFFF2;background:radial-gradient(circle at 50% 42%,rgba(61,220,110,.55),rgba(20,60,38,.9) 70%);border-color:rgba(61,220,110,.7);box-shadow:0 0 0 1px rgba(61,220,110,.5),0 0 22px rgba(61,220,110,.45),inset 0 1px 0 rgba(255,255,255,.2)}
+.pv.pv .mt.gem::before,.pv.pv .mt.gem::after{display:none}
+.pv.pv .mt.mine{color:#FFE6DE;background:radial-gradient(circle at 50% 42%,rgba(255,92,77,.65),rgba(70,18,12,.92) 72%);border-color:rgba(255,92,77,.75);box-shadow:0 0 0 1px rgba(255,92,77,.55),0 0 26px rgba(255,92,77,.5)}
+.pv.pv .mt.mine::before,.pv.pv .mt.mine::after{display:none}
+.pv.pv .mt.reveal{opacity:.4;box-shadow:none}
+/* Star Map — a chart of stars, with the picks joined into a constellation */
+.pv.pv .kgrid{position:relative;z-index:1;gap:6px}
+.pv.pv .kline{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:visible}
+.pv.pv .kline polyline{fill:none;stroke:rgba(255,214,107,.55);stroke-width:1.4;stroke-linejoin:round;stroke-dasharray:3 4;filter:drop-shadow(0 0 4px rgba(255,178,36,.6))}
+.pv.pv .kc{border-radius:50%;border:1px solid rgba(255,255,255,.10);color:var(--faint);font-size:10px;
+  background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.10),rgba(255,255,255,.02) 60%,transparent);
+  box-shadow:inset 0 0 8px rgba(255,255,255,.05)}
+.pv.pv .kc.pick{color:#2B1600;border-color:transparent;background:radial-gradient(circle at 50% 38%,#FFF3D0,#FFB224 55%,#FF8A3D);box-shadow:0 0 14px rgba(255,178,36,.75),0 0 3px rgba(255,255,255,.9);animation:pv-twinkle 2.4s ease-in-out infinite}
+.pv.pv .kc.hit{color:#04270F;border-color:transparent;background:radial-gradient(circle at 50% 38%,#FFFFFF,#7BFFB0 45%,#22D36B);box-shadow:0 0 22px rgba(61,255,138,.9),0 0 6px #fff;animation:pv-pop .35s ease}
+.pv.pv .kc.miss{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06);color:var(--faint);opacity:.45;box-shadow:none;animation:none}
+@keyframes pv-twinkle{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+/* Ascent — a launch gantry with a capsule that climbs */
+.pv.pv .tgrid{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 30%);border-radius:12px}
+.pv.pv .tgrid::before{content:'';position:absolute;left:14px;right:60px;top:0;bottom:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0 15px,rgba(255,255,255,.05) 15px 16px)}
+.pv.pv .trow{position:relative;z-index:1}
+.pv.pv .trow.on::before{content:'';position:absolute;left:-6px;right:-6px;top:-3px;bottom:-3px;border-radius:10px;background:linear-gradient(90deg,rgba(255,178,36,.18),transparent 70%);box-shadow:inset 0 0 0 1px rgba(255,178,36,.35);pointer-events:none}
+.pv.pv .tt{border-radius:8px;border:1px solid rgba(255,255,255,.10);color:transparent;
+  background:linear-gradient(180deg,#39404E 0%,#262B36 55%,#1B1F28 100%);
+  box-shadow:0 2px 0 #0d0f15,inset 0 1px 0 rgba(255,255,255,.14)}
+.pv.pv .trow.on .tt{border-color:rgba(255,178,36,.35)}
+.pv.pv .tt.safe{color:#EAFFF2;background:linear-gradient(180deg,rgba(61,220,110,.5),rgba(18,58,36,.9));border-color:rgba(61,220,110,.7);box-shadow:0 0 16px rgba(61,220,110,.4),inset 0 1px 0 rgba(255,255,255,.18)}
+.pv.pv .tt.void{color:#FFE1DB;background:linear-gradient(180deg,rgba(255,77,109,.55),rgba(66,12,22,.92));border-color:rgba(255,77,109,.75);box-shadow:0 0 20px rgba(255,77,109,.45)}
+.pv.pv .tcap{position:absolute;left:2px;width:16px;height:16px;border-radius:50%;z-index:2;pointer-events:none;
+  background:radial-gradient(circle at 40% 35%,#FFF3D0,#FFB224 60%,#FF6A3D);box-shadow:0 0 12px rgba(255,178,36,.9);transition:top .28s cubic-bezier(.3,1.4,.5,1)}
+/* Meteor Drop — a lit board, buckets with depth */
+.pv.pv .plinko-wrap{background:radial-gradient(120% 80% at 50% 0%,rgba(124,92,255,.16),transparent 60%),#05060a}
+.pv.pv .buckets span{border-radius:6px 6px 8px 8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -6px 8px rgba(0,0,0,.35),0 3px 0 rgba(0,0,0,.45);transition:transform .12s,filter .12s}
+.pv.pv .buckets span.hit{transform:translateY(5px);filter:brightness(1.35)}
+/* Warp Drive — the box goes to lightspeed while the drive spools */
+.pv.pv .lbbox{position:relative;overflow:hidden;background:radial-gradient(80% 100% at 50% 50%,rgba(111,179,255,.12),transparent 70%),#05060a}
+.pv.pv .lbbox::before{content:'';position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .2s;
+  background:repeating-linear-gradient(90deg,transparent 0 44px,rgba(255,255,255,.16) 44px 45px,transparent 45px 90px),repeating-linear-gradient(90deg,transparent 0 71px,rgba(195,155,255,.2) 71px 73px,transparent 73px 142px);
+  background-size:900px 100%,1400px 100%;-webkit-mask:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent);mask:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent)}
+.pv.pv .lbbox.warp::before{opacity:1;animation:pvWarpX .32s linear infinite}
+.pv.pv .lbnum{position:relative;text-shadow:0 0 26px currentColor}
+/* Signal — a readout that lights up with the reading */
+.pv.pv .hlcard{position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,hsla(var(--sig,200),85%,55%,.30),rgba(255,255,255,.03) 65%),linear-gradient(160deg,var(--sunken2),var(--card));border-color:hsla(var(--sig,200),80%,60%,.4);box-shadow:0 0 26px hsla(var(--sig,200),85%,55%,.22),0 10px 30px rgba(0,0,0,.4)}
+.pv.pv .hlcard span{text-shadow:0 0 24px hsla(var(--sig,200),90%,65%,.8)}
+.pv.pv .hlbars{display:flex;gap:3px;align-items:flex-end;height:16px;margin-top:4px}
+.pv.pv .hlbars i{width:4px;border-radius:2px;background:rgba(255,255,255,.16)}
+.pv.pv .hlbars i.on{background:hsl(var(--sig,200) 85% 62%);box-shadow:0 0 8px hsla(var(--sig,200),85%,62%,.8)}
+/* Orbit Wheel — glass over the ring */
+.pv.pv .whbox{position:relative}
+.pv.pv .whbox::after{content:'';position:absolute;left:50%;top:50%;width:var(--wh,0);height:var(--wh,0);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(60% 45% at 50% 12%,rgba(255,255,255,.16),transparent 60%);}
+
 /* brand mark used in the header, login and onboarding */
 .pvmark{display:inline-grid;place-items:center;border-radius:28%;background:linear-gradient(145deg,#FFD166,#FF9A00 60%,#FF5C4D);color:#2B1B00;font-weight:900;line-height:1;box-shadow:0 2px 10px rgba(255,176,0,.35);flex:0 0 auto;font-family:var(--font)}
 .logo .pvword b{color:var(--mc,#FFB000)}
@@ -1422,7 +1485,7 @@ VIEWS.mines=p=>{let game=null;
   tiles.forEach(t=>t.onclick=()=>pick(+t.dataset.i));
   randBtn.onclick=()=>{if(!game)return;const free=tiles.map((t,i)=>i).filter(i=>!game.open.has(i));pick(pk(free))};
   cleanup=()=>{removeEventListener('resize',onRz);if(game){if(game.gems){const mult=mineMult(MN.mines,game.gems);payout(game.bet*mult,'Mines cash out');logBet('mines',game.bet,mult);toast(`Mines: auto cashed out at ${mult.toFixed(2)}×`,'up')}else{credit(game.bet,'Mines bet refunded')}game=null;save()}};
-  startBtn.onclick=()=>{if(game){if(game.gems)end(true);return}const bet=getBet();if(!bet)return;if(!placeBet(bet,'Mines bet'))return;reset();const set=new Set();while(set.size<MN.mines)set.add(ri(0,24));game={bet,set,open:new Set(),gems:0};tiles.forEach(t=>t.disabled=false);snd('click');upd()};
+  startBtn.onclick=()=>{if(game){if(game.gems)end(true);return}const bet=getBet();if(!bet)return;if(!placeBet(bet,'Mines bet'))return;reset();const ix=Array.from({length:25},(_,i)=>i);for(let i=24;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=ix[i];ix[i]=ix[j];ix[j]=t}const set=new Set(ix.slice(0,MN.mines));game={bet,set,open:new Set(),gems:0};tiles.forEach(t=>t.disabled=false);snd('click');upd()};
 };
 
 /* ---------- PLINKO ---------- */
@@ -1456,9 +1519,17 @@ VIEWS.plinko=p=>{
   const puff=(x,y,col,n)=>{for(let i=0;i<n;i++){const a=Math.random()*6.2832,v=40+Math.random()*130;sparks.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-40,r:1+Math.random()*2,col,life:1})}};
   const draw=()=>{ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
     const now=performance.now(),pr=Math.max(2.5,s*.13);
+    // board glow + drop chute
+    const gl=ctx.createRadialGradient(W/2,0,0,W/2,0,H*.9);gl.addColorStop(0,'rgba(124,92,255,.20)');gl.addColorStop(1,'rgba(124,92,255,0)');
+    ctx.fillStyle=gl;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,.07)';
+    ctx.beginPath();ctx.moveTo(W/2-s*1.15,0);ctx.lineTo(W/2+s*1.15,0);ctx.lineTo(W/2+br*1.5,top-gap*.55);ctx.lineTo(W/2-br*1.5,top-gap*.55);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1.5;ctx.stroke();
     for(const g of pegs){const f=g.hit?clamp(1-(now-g.hit)/240,0,1):0;
       if(f>0){ctx.beginPath();ctx.fillStyle='rgba(255,214,107,'+(.45*f).toFixed(3)+')';ctx.arc(g.x,g.y,pr*(2+f*1.6),0,6.2832);ctx.fill()}
-      ctx.beginPath();ctx.fillStyle=f>0?'#FFE7A6':'#8D98A6';ctx.arc(g.x,g.y,pr*(1+.4*f),0,6.2832);ctx.fill()}
+      const pg=ctx.createRadialGradient(g.x-pr*.4,g.y-pr*.4,pr*.1,g.x,g.y,pr*1.15);
+      pg.addColorStop(0,f>0?'#FFF6DC':'#C7D0DC');pg.addColorStop(1,f>0?'#FFB224':'#6E7889');
+      ctx.beginPath();ctx.fillStyle=pg;ctx.arc(g.x,g.y,pr*(1+.4*f),0,6.2832);ctx.fill()}
     for(const q of sparks){ctx.globalAlpha=clamp(q.life,0,1)*.8;ctx.beginPath();ctx.fillStyle=q.col;ctx.arc(q.x,q.y,q.r,0,6.2832);ctx.fill()}
     ctx.globalAlpha=1;
     for(const b of balls){
@@ -1676,11 +1747,11 @@ VIEWS.limbo=p=>{let busy=false;
   const calc=()=>{const t=clamp(+ti.value||1.01,1.01,1e6);const ch=99/t;$('#lbCh',p).textContent=ch>=1?ch.toFixed(2)+'%':ch.toFixed(3)+'%';$('#lbPay',p).textContent=fm2((+$('#betI',p).value||0)*t);return t};
   calc();ti.oninput=calc;$('#betI',p).addEventListener('input',calc);$('#betI',p).addEventListener('betchange',calc);
   $('#lbGo',p).onclick=()=>{if(busy)return;const t=calc();const bet=getBet();if(!bet)return;if(!placeBet(bet,'Warp Drive bet'))return;
-    LB.target=t;busy=true;$('#lbGo',p).disabled=true;el.className='lbnum tn';sub.textContent='Spooling up…';
+    LB.target=t;busy=true;$('#lbGo',p).disabled=true;el.className='lbnum tn';sub.textContent='Spooling up…';$('.lbbox',p).classList.add('warp');
     const r=Math.min(1e6,Math.max(1,Math.floor(99/(1-Math.random()))/100));const win=r>=t;
     const D=S.fast?450:1250,t0=performance.now();
     const tick=now=>{const k=clamp((now-t0)/D,0,1);const v=1+(r-1)*easeOut(k);el.textContent=v.toFixed(2)+'×';
-      if(k<1)requestAnimationFrame(tick);else{el.textContent=r.toFixed(2)+'×';el.classList.add(win?'w':'l');
+      if(k<1)requestAnimationFrame(tick);else{el.textContent=r.toFixed(2)+'×';el.classList.add(win?'w':'l');$('.lbbox',p).classList.remove('warp');
         if(win){payout(bet*t,'Warp Drive win');logBet('limbo',bet,t);snd('cash');pushHist(p,'limbo',r.toFixed(2)+'×',t>=10?'big':'w');sub.textContent=`Cleared ${t.toFixed(2)}× — +${fm(bet*t)}`;if(t>=5)confetti(70)}
         else{logBet('limbo',bet,0);snd('lose');pushHist(p,'limbo',r.toFixed(2)+'×','l');sub.textContent=`Fell short of ${t.toFixed(2)}×`}
         busy=false;$('#lbGo',p).disabled=false;save()}};
@@ -1745,7 +1816,7 @@ function kenoTable(n){if(!n)return[];const P=h=>C(10,h)*C(30,n-h)/C(40,n);const 
   const out=[];for(let h=0;h<=n;h++)out.push(h<t?0:Math.round(w(h)*k*100)/100);return out}
 VIEWS.keno=p=>{let busy=false,drawn=null;
   p.innerHTML=`${topbar('Star Map','casino')}${histRow('keno')}
-  <div class="gamebox"><div class="kgrid" id="kg">${Array.from({length:40},(_,i)=>`<button class="kc" data-i="${i}">${i+1}</button>`).join('')}</div></div>
+  <div class="gamebox"><svg class="kline" id="kl"><polyline points=""></polyline></svg><div class="kgrid" id="kg">${Array.from({length:40},(_,i)=>`<button class="kc" data-i="${i}">${i+1}</button>`).join('')}</div></div>
   <div class="gpanel"><div class="ktab" id="kt"></div>
   <div class="btnrow"><button class="btn sm" id="kRand" style="width:auto;flex:1">Auto pick</button><button class="btn sm" id="kClear" style="width:auto;flex:1">Clear</button></div>
   ${betBox()}<button class="btn pri" id="kGo">Scan the map</button></div>`;
@@ -1756,6 +1827,9 @@ VIEWS.keno=p=>{let busy=false,drawn=null;
   const paint=()=>{cells.forEach((c,i)=>{c.className='kc'+(KN.picks.includes(i)?' pick':'')+(drawn&&drawn.includes(i)?(KN.picks.includes(i)?' hit':' miss'):'')});
     const t=kenoTable(KN.picks.length);
     $('#kt',p).innerHTML=KN.picks.length?`<div class="label" style="margin-bottom:5px">${KN.picks.length} star${KN.picks.length===1?'':'s'} · pays on</div><div class="krow">${t.map((m,h)=>m>0?`<span><b>${h}</b>${m}×</span>`:'').join('')}</div>`:'<div class="label">Pick 1–10 stars</div>';
+    const pl=$('#kl polyline',p),gd=$('#kg',p);
+    if(pl){const pts=KN.picks.map(i=>{const c=cells[i];return (c.offsetLeft+gd.offsetLeft+c.offsetWidth/2).toFixed(1)+','+(c.offsetTop+gd.offsetTop+c.offsetHeight/2).toFixed(1)});
+      pl.setAttribute('points',pts.length>1?pts.join(' '):'')}
     $('#kGo',p).disabled=!KN.picks.length||busy};
   paint();
   cells.forEach(c=>c.onclick=()=>{if(busy)return;const i=+c.dataset.i;drawn=null;
@@ -1777,13 +1851,15 @@ VIEWS.keno=p=>{let busy=false,drawn=null;
 /* ---------- SIGNAL (hi-lo) ---------- */
 VIEWS.hilo=p=>{let g=null;
   p.innerHTML=`${topbar('Signal','casino')}${histRow('hilo')}
-  <div class="gamebox hlbox"><div class="hlcard" id="hlC"><span class="tn" id="hlV">7</span><small>signal</small></div><div class="hltrail" id="hlT"></div></div>
+  <div class="gamebox hlbox"><div class="hlcard" id="hlC"><span class="tn" id="hlV">7</span><small>signal</small><div class="hlbars" id="hlB"></div></div><div class="hltrail" id="hlT"></div></div>
   <div class="gpanel"><div class="grid2" style="grid-template-columns:1fr 1fr 1fr"><div class="kv"><div class="label">Streak</div><div class="v" id="hlK">0</div></div><div class="kv"><div class="label">Multiplier</div><div class="v ca" id="hlM">—</div></div><div class="kv"><div class="label">Cash out</div><div class="v cu" id="hlO">—</div></div></div>
   <div class="btnrow"><button class="btn" id="hlUp">Higher <span class="amt" id="hlUpM"></span></button><button class="btn" id="hlDn">Lower <span class="amt" id="hlDnM"></span></button></div>
   ${betBox()}<button class="btn pri" id="hlGo">Start</button></div>`;
   bindBack(p,()=>{if(g){toast('Cash out or finish the round first');return}go('casino')});const getBet=bindBet(p);
   const pUp=v=>(14-v)/13,pDn=v=>v/13;
   const upd=()=>{const v=g?g.v:7;$('#hlV',p).textContent=v;
+    const card=$('#hlC',p);if(card){card.style.setProperty('--sig',Math.round(200-(v-1)/12*200));
+      const bars=$('#hlB',p);if(bars)bars.innerHTML=Array.from({length:7},(_,i)=>`<i class="${i<Math.round(v/13*7)?'on':''}" style="height:${5+i*1.7}px"></i>`).join('')}
     const cu=g?.99/(g.prod*pUp(v)):.99/pUp(v),cd=g?.99/(g.prod*pDn(v)):.99/pDn(v);
     $('#hlUpM',p).textContent='· '+cu.toFixed(2)+'×';$('#hlDnM',p).textContent='· '+cd.toFixed(2)+'×';
     $('#hlUp',p).disabled=!g||cu<1.01;$('#hlDn',p).disabled=!g||cd<1.01;
@@ -1833,6 +1909,10 @@ VIEWS.tower=p=>{let g=null;
     $('#tN',p).textContent=twMult(dd,(g?g.k:0)+1).toFixed(2)+'×';
     $('#tO',p).textContent=g&&g.k?fm2(g.bet*twMult(dd,g.k)):'—';
     $$('.trow',p).forEach(r=>r.classList.toggle('on',!!g&&+r.dataset.r===g.k));
+    const tg=$('#tg',p);let cap=$('.tcap',tg);
+    if(g){if(!cap){cap=document.createElement('i');cap.className='tcap';tg.appendChild(cap)}
+      const row=$(`.trow[data-r="${Math.min(g.k,TW.rows-1)}"]`,tg);if(row)cap.style.top=(row.offsetTop+row.offsetHeight/2-8)+'px'}
+    else if(cap)cap.remove();
     $$('[data-t]',p).forEach(b=>b.disabled=!!g);
     const btn=$('#tGo',p);
     if(!g){btn.className='btn pri';btn.textContent='Start climbing';btn.disabled=false}
