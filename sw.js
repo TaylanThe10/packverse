@@ -1,6 +1,6 @@
 // PackVerse service worker — keeps the app working offline, but always prefers a fresh
 // build when there is a connection, so a new deploy shows up on the next open.
-const VERSION = '20260902-1137';
+const VERSION = '20260907-1607';
 const CACHE = 'packverse-' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
