@@ -2401,7 +2401,10 @@ const snd=(n,x)=>{switch(n){
   case 'win':{const r=x||0;if(r>=3)haptic(r>=5?'heavy':r>=4?'success':'medium');const base=[440,523,659,784,988,1175][r];const n=2+r;for(let i=0;i<n;i++)tone(base*Math.pow(1.19,i),i*.07,{type:i%2?'triangle':'sine',g:.11,d:.18});if(r>=4)for(let i=0;i<4;i++)tone(base*2*Math.pow(1.25,i),.5+i*.09,{g:.09,d:.3});break}
   case 'near':tone(660,0,{type:'triangle',g:.09,d:.16});tone(495,.13,{type:'triangle',g:.08,d:.26});haptic('warning');break;
   case 'peg':tone(900+Math.random()*600,0,{type:'sine',g:.04,d:.04});break;
-  case 'gem':tone(1046,0,{type:'sine',g:.09,d:.12});tone(1568,.05,{type:'sine',g:.06,d:.15});break;
+  case 'gem':{const st=Math.pow(1.0595,Math.min(24,x||0));tone(1046*st,0,{type:'sine',g:.09,d:.12});tone(1568*st,.05,{type:'sine',g:.06,d:.15});break}
+  case 'near':tone(520,0,{type:'sawtooth',g:.07,d:.26,slide:-260});tone(780,.01,{type:'sawtooth',g:.04,d:.22,slide:-360});haptic('light');break;
+  case 'horn':tone(392,0,{type:'square',g:.05,d:.16});tone(494,.005,{type:'square',g:.045,d:.16});break;
+  case 'flap':tone(240+Math.random()*80,0,{type:'triangle',g:.045,d:.07,slide:90});break;
 }};
 
 /* =====================================================================
@@ -3125,7 +3128,16 @@ VIEWS.chicken=p=>{
   let W=0,H=0,dpr=1;const LW=78,SW=96;
   const D=()=>CK_D[CK.diff];
   const st={phase:'idle',k:0,lanes:[],bet:0,cars:[],fx:[],skids:[],cam:0,cx:SW/2,cy:0,hop:null,land:0,hitCar:null,
-    spawnT:0,raf:0,alive:true,last:performance.now(),msg:null,slow:0,flash:0,shake:0,reveal:-1,peek:null,deadRot:0};
+    spawnT:0,raf:0,alive:true,last:performance.now(),msg:null,slow:0,flash:0,shake:0,reveal:-1,peek:null,deadRot:0,
+    /* feel-only state — none of it touches the odds */
+    wind:null,          // the crouch before a hop
+    freezeTo:0,         // hitstop: render, do not simulate
+    buffer:0,           // a tap that arrived while busy, replayed when it becomes legal
+    idleT:Math.random()*9, blink:0, look:0,
+    shownOut:0,outFrom:0,outTo:0,outT:1,   // the cash-out figure, counted up rather than snapped
+    lead:0};
+  /* a player who asked for less motion gets less of it */
+  const MOTION=(()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches?.25:1}catch(e){return 1}})();
   const worldW=()=>SW*2+D().N*LW;
   const laneX=i=>SW+i*LW+LW/2;
   const chickX=k=>k?laneX(k-1):SW/2;
@@ -3133,7 +3145,13 @@ VIEWS.chicken=p=>{
   const layout=()=>{H=Math.round(clamp(roomFor(box,p),innerHeight<700?150:190,GCAP(300)));box.style.height=H+'px';W=box.clientWidth;dpr=Math.min(3,devicePixelRatio||1);cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';st.cy=(H-26)/2+2;grain=null};
 
   /* ---------------- panel ---------------- */
-  const upd=()=>{const d=D();const k=st.k;$('#kLane',p).textContent=`${k} / ${d.N}`;$('#kNext',p).textContent=k<d.N?fmMult(ckMult(d,k+1)):'—';$('#kOut',p).textContent=(st.phase==='run'&&k)?fm2(st.bet*ckMult(d,k)):'—';
+  const paintOut=v=>{const el=$('#kOut',p);if(el)el.textContent=fm2(v);
+    const amt=outBtn&&outBtn.querySelector('.amt');if(amt)amt.textContent='· '+fm2(v)};
+  const upd=()=>{const d=D();const k=st.k;$('#kLane',p).textContent=`${k} / ${d.N}`;$('#kNext',p).textContent=k<d.N?fmMult(ckMult(d,k+1)):'—';
+    /* the figure climbs to its new value — a number that jumps looks like a
+       variable, a number that climbs looks like a reward */
+    const want=(st.phase==='run'&&k)?st.bet*ckMult(d,k):0;
+    if(!want){st.shownOut=0;st.outTo=0;st.outT=1;$('#kOut',p).textContent='—'}
     $('#kBest',p).textContent='· best '+((S.ckBest&&S.ckBest[CK.diff])||0);
     $('#kRisk',p).textContent=k<d.N?'· '+Math.round(d.p*100)+'% risk':'';
     const _bar=$('#ckBar i',p);if(_bar)_bar.style.width=Math.round(100*k/d.N)+'%';
@@ -3159,12 +3177,14 @@ VIEWS.chicken=p=>{
   /* the chicken, drawn rather than typed */
   const chicken=(x,y,o)=>{
     const air=o.air||0,sq=o.squash||1,rot=o.rot||0,dead=!!o.dead,panic=!!o.panic,flap=o.flap||0;
+    const bob=o.bob||0,look=o.look||0,lidRaw=o.blink||0;
+    const lid=lidRaw>0?Math.sin(Math.min(1,lidRaw)*Math.PI):0;
     // shadow shrinks and softens as it rises
     const lift=clamp(air/34,0,1);
     ctx.save();ctx.globalAlpha=.42*(1-lift*.7);ctx.fillStyle='#000';
     ctx.beginPath();ctx.ellipse(x,y+16,18*(1-lift*.35),5.4*(1-lift*.45),0,0,7);ctx.fill();ctx.restore();
 
-    ctx.save();ctx.translate(x,y-air);if(rot)ctx.rotate(rot);ctx.scale(1.26,1.26);
+    ctx.save();ctx.translate(x,y-air-bob);if(rot)ctx.rotate(rot);ctx.scale(1.26,1.26);
     ctx.scale(sq.x||sq,sq.y||(2-(sq.x||sq)));
     if(dead)ctx.scale(1,.72);
     // legs — tucked in the air, planted on the ground
@@ -3183,7 +3203,8 @@ VIEWS.chicken=p=>{
     ctx.save();ctx.translate(-3,-1);ctx.rotate(-flap*.9);
     ctx.fillStyle='#E9DFC8';ctx.beginPath();ctx.ellipse(0,0,9,6.5,-.15,0,7);ctx.fill();
     ctx.strokeStyle='rgba(0,0,0,.14)';ctx.lineWidth=1;ctx.stroke();ctx.restore();
-    // head
+    // head — `look` swings it toward whatever the bird is watching
+    ctx.save();ctx.translate(look*2.2,0);
     ctx.fillStyle='#FFFBF0';ctx.beginPath();ctx.arc(11,-9,7.6,0,7);ctx.fill();
     // comb
     ctx.fillStyle='#E23B2E';[[7,-16,3.1],[11,-17.6,3.4],[15,-16,3]].forEach(([cx2,cy2,r])=>{ctx.beginPath();ctx.arc(cx2,cy2,r,0,7);ctx.fill()});
@@ -3194,7 +3215,10 @@ VIEWS.chicken=p=>{
     if(dead){ctx.strokeStyle='#23262B';ctx.lineWidth=2;ctx.beginPath();
       ctx.moveTo(10,-12);ctx.lineTo(15,-8);ctx.moveTo(15,-12);ctx.lineTo(10,-8);ctx.stroke()}
     else{const er=panic?3.4:2.3;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(13,-10,er,0,7);ctx.fill();
-      ctx.fillStyle='#23262B';ctx.beginPath();ctx.arc(13.6+(panic?.5:0),-10,er*.58,0,7);ctx.fill()}
+      ctx.fillStyle='#23262B';ctx.beginPath();ctx.arc(13.6+(panic?.5:0),-10,er*.58,0,7);ctx.fill();
+      if(lid>0){ctx.fillStyle='#FFFBF0';ctx.beginPath();
+        ctx.ellipse(13,-10-er*(1-lid),er+.6,er*lid,0,0,7);ctx.fill()}}
+    ctx.restore();   // head
     ctx.restore();
   };
 
@@ -3297,17 +3321,25 @@ VIEWS.chicken=p=>{
       ctx.fillText(st.peek.blocked?'was blocked':'was clear',laneX(st.reveal),st.cy-44);ctx.restore()}
 
     if(st.phase!=='deadgone')chicken(st.cx,st.cy,{air:st.airNow||0,squash:st.sqNow||1,rot:st.deadRot,
-      dead:st.phase==='dead',panic:st.panic>0,flap:st.flapNow||0});
+      dead:st.phase==='dead',panic:st.panic>0,flap:st.flapNow||0,
+      bob:st.bobNow||0,look:st.look||0,blink:st.phase==='dead'?0:(st.blink||0)});
 
     // multiplier plates along the bottom
     for(let i=0;i<d.N;i++){const x=laneX(i),crossed=i<st.k,next=i===st.k&&(st.phase==='run'||st.phase==='hop');
-      const lbl=fmMult(ckMult(d,i+1));ctx.font='700 10.5px '+FONT();
-      const pw=Math.min(LW-10,Math.max(38,ctx.measureText(lbl).width+14));
+      const lbl=fmMult(ckMult(d,i+1));
+      /* the next plate is the one the whole decision is about, so it is
+         bigger, breathing, and lifted off the row */
+      const gro=next?1+.07*Math.sin(performance.now()/230):1;
+      ctx.font='700 '+(next?12.5:10.5)+'px '+FONT();
+      const pw=Math.min(LW-4,Math.max(next?46:38,ctx.measureText(lbl).width+(next?18:14)))*gro;
+      const ph=(next?21:17)*gro, py=bot-(next?28:23);
+      if(next){ctx.save();ctx.shadowColor='rgba(255,176,0,.55)';ctx.shadowBlur=14}
       ctx.fillStyle=next?'rgba(255,176,0,.96)':crossed?'rgba(255,255,255,.90)':'rgba(8,9,11,.78)';
-      rr(x-pw/2,bot-23,pw,17,5);ctx.fill();
+      rr(x-pw/2,py,pw,ph,5);ctx.fill();
+      if(next)ctx.restore();
       if(!next&&!crossed){ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.stroke()}
       ctx.fillStyle=(next||crossed)?'#0A0B0D':'#C9CDD4';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(lbl,x,bot-14.5)}
+      ctx.fillText(lbl,x,py+ph/2)}
 
     // particles
     for(const f of st.fx){ctx.globalAlpha=Math.max(0,f.l/f.l0);
@@ -3339,11 +3371,28 @@ VIEWS.chicken=p=>{
 
   /* ---------------- loop ---------------- */
   const loop=now=>{if(!st.alive)return;
+    /* hitstop: on impact the world stops dead for a few frames while the
+       screen keeps drawing. It is the cheapest way to make a hit feel heavy,
+       and it has to come before anything else in the frame. */
+    if(now<st.freezeTo){draw();st.raf=requestAnimationFrame(loop);st.last=now;return}
     let dt=Math.min(.05,(now-st.last)/1000);st.last=now;
     const rdt=dt;                                            // wall-clock, for things that must not slow down
     if(st.slow>0){st.slow-=dt;dt*=.32}                       // the impact beat, in slow motion
     const d=D();
-    const target=clamp(st.cx-W*.40,0,Math.max(0,worldW()-W));st.cam+=(target-st.cam)*Math.min(1,dt*7);
+
+    /* idle life — a scene with nothing moving reads as broken */
+    st.idleT+=rdt;
+    if(st.blink>0)st.blink-=rdt*5.5;
+    else if(Math.random()<rdt*.5)st.blink=1;
+    const standing=(st.phase==='run'||st.phase==='idle')&&!st.hop&&!st.wind;
+    st.bobNow=standing?Math.sin(st.idleT*2.4)*.9:0;
+    /* the head turns toward the lane it is about to enter, then back */
+    const wantLook=st.wind?1:(st.panic>0?-.6:0);
+    st.look+=(wantLook-st.look)*Math.min(1,rdt*9);
+
+    /* the camera leads the hop instead of trailing it */
+    st.lead+=((st.hop?26:0)-st.lead)*Math.min(1,rdt*6);
+    const target=clamp(st.cx+st.lead-W*.40,0,Math.max(0,worldW()-W));st.cam+=(target-st.cam)*Math.min(1,dt*7);
     if(st.shake>0)st.shake=Math.max(0,st.shake-rdt*26);
     if(st.flash>0)st.flash=Math.max(0,st.flash-rdt*5.2);
     if(st.panic>0)st.panic-=dt;
@@ -3352,17 +3401,27 @@ VIEWS.chicken=p=>{
     st.spawnT-=dt;
     if(st.spawnT<=0&&st.phase!=='dead'){const rush=1+st.k/Math.max(1,d.N);
       st.spawnT=(.46+Math.random()*.7)/rush;
-      const free=[];for(let i=st.k+1;i<Math.min(d.N,st.k+8);i++)free.push(i);
+      const free=[];for(let i=st.k;i<Math.min(d.N,st.k+8);i++)free.push(i);
       if(free.length){const lane=pk(free),dir=laneDir(lane);
-        st.cars.push({lane,y:dir>0?-46:H+46,vy:dir*(80+Math.random()*110)*rush,col:pk(CARCOL)})}}
+        st.cars.push({lane,y:dir>0?-46:H+46,vy:dir*(80+Math.random()*110)*rush,col:pk(CARCOL)});
+        if(lane===st.k&&st.phase==='run'&&st.k<d.N)snd('horn')}}
     for(const c of st.cars)c.y+=c.vy*dt;
     st.cars=st.cars.filter(c=>c.y>-90&&c.y<H+90);
+    /* nothing may share the square the bird is landing on */
+    if(st.hop)st.cars=st.cars.filter(c=>c.lane!==st.k||Math.abs(c.y-st.cy)>46);
 
     // a car blasting past the very next lane — the reason to think twice
     if(st.phase==='run'&&st.k<d.N){for(const c of st.cars){
       if(c.lane!==st.k||c.wooshed)continue;
-      if(Math.abs(c.y-st.cy)<34){c.wooshed=1;st.panic=.85;st.shake=Math.max(st.shake,2.2);snd('near');
-        st.fx.push({x:laneX(c.lane),y:st.cy-46,txt:'WHOOSH',sz:13,c:'#FFD66B',l:.7,l0:.7})}}}
+      if(Math.abs(c.y-st.cy)<34){c.wooshed=1;st.panic=.85;st.shake=Math.max(st.shake,4.5*MOTION);snd('near');
+        st.freezeTo=Math.max(st.freezeTo,now+45*MOTION);
+        st.fx.push({x:laneX(c.lane),y:st.cy-46,txt:'WHOOSH',sz:13,c:'#FFD66B',l:.7,l0:.7});
+        for(let i=0;i<5;i++)st.fx.push({x:st.cx+(Math.random()-.5)*18,y:st.cy+(Math.random()-.5)*14,
+          vx:-40-Math.random()*60,vy:(Math.random()-.5)*70,r:1.6+Math.random()*2,c:'#EFE6D0',l:.5,l0:.5})}}}
+
+    // the crouch before the hop: the bird checks the lane, coils, then goes
+    if(st.wind){st.wind.t=Math.min(1,st.wind.t+rdt/st.wind.dur);
+      if(st.wind.t>=1){const w=st.wind;st.wind=null;w.go()}}
 
     // hop: a ballistic arc with squash on the way out and in
     if(st.land>0)st.land=Math.max(0,st.land-dt*6);
@@ -3372,44 +3431,93 @@ VIEWS.chicken=p=>{
     const ht=st.hop?st.hop.t:0;
     st.airNow=st.hop?30*4*ht*(1-ht):0;
     st.flapNow=st.hop?Math.sin(ht*Math.PI*3)*.5:0;
-    st.sqNow=st.hop?{x:1+.16*Math.sin(ht*Math.PI),y:1-.10*Math.sin(ht*Math.PI)}
+    const wt=st.wind?Math.sin(st.wind.t*Math.PI*.5):0;       // coil, deepest at launch
+    st.sqNow=st.wind?{x:1+.13*wt,y:1-.17*wt}
+            :st.hop?{x:1+.16*Math.sin(ht*Math.PI),y:1-.10*Math.sin(ht*Math.PI)}
             :st.land?{x:1+.22*st.land,y:1-.22*st.land}:1;
+
+    /* A tap that landed mid-hop still counts: it is queued and played the
+       moment the bird is back on its feet. Without this the game feels
+       unresponsive at speed, because a hop runs 410ms and every press inside
+       it used to be thrown away. The queue is one deep, and a tap is only
+       taken once the arc has started — so the press that launched the hop
+       cannot double-fire into the next lane. */
+    if(st.buffer&&st.phase==='run'&&!st.hop&&!st.wind){st.buffer=0;step()}
 
     // the car that has your name on it
     if(st.hitCar&&!st.hitCar.hit){st.hitCar.y+=st.hitCar.vy*dt;
       const dir=st.hitCar.dir||1;
       if(dir>0?(st.hitCar.y+24>=st.cy):(st.hitCar.y-24<=st.cy)){st.hitCar.hit=true;st.hitCar.y=st.cy-30*dir;st.deadRot=0;
         st.skids.push({x:laneX(st.hitCar.lane),y0:st.cy-96*dir,y1:st.cy-26*dir});
-        feathers(st.cx,st.cy);snd('boom');pageShake(1);st.shake=13;st.flash=1;st.slow=.5;
-        st.phase='dead';st.msg={t:'Splat.',s:`Lost ${fm2(st.bet)} on lane ${st.k+1}`,col:'#FF5C4D'};
+        feathers(st.cx,st.cy);snd('boom');pageShake(1);
+        st.shake=13*MOTION;st.flash=1;st.slow=.5;
+        st.freezeTo=now+110*MOTION;          // the world stops for a beat before the slow motion
+        st.phase='dead';st.msg={t:pk(['Splat.','Flattened.','Roadkill.','Not today.']),
+          s:`Lost ${fm2(st.bet)} on lane ${st.k+1}`,col:'#FF5C4D'};
         pushHist(p,'chicken','0×','l');logBet('chicken',st.bet,0);bust(p,'chicken');upd();save()}}
     if(st.phase==='dead'&&st.deadRot<1.25)st.deadRot+=dt*6;
 
     for(const f of st.fx){if(f.txt)f.y-=22*dt;else{f.x+=f.vx*dt;f.y+=f.vy*dt;if(!f.puff)f.vy+=240*dt}f.l-=dt}
     st.fx=st.fx.filter(f=>f.l>0);
+
+    /* The cash-out figure walks up to its target rather than snapping, and
+       the button walks with it — two numbers for the same money must never
+       disagree on screen, even for a third of a second.
+
+       It runs on a timed ease, not a lerp toward the target: a lerp only
+       approaches, so the last cent never arrives and the figure settles a
+       fraction under the real payout. Over a fixed 340ms it lands exact. */
+    if(st.phase==='run'&&st.k){const want=st.bet*ckMult(d,st.k);
+      if(want!==st.outTo){st.outFrom=st.shownOut;st.outTo=want;st.outT=0}
+      if(st.outT<1){st.outT=Math.min(1,st.outT+rdt/.34);
+        const e=1-Math.pow(1-st.outT,3);
+        st.shownOut=st.outT>=1?want:st.outFrom+(want-st.outFrom)*e;
+        paintOut(st.shownOut)}}
     draw();st.raf=requestAnimationFrame(loop)};
 
   /* ---------------- flow (odds and payouts unchanged) ---------------- */
   const reset=()=>{st.k=0;st.lanes=[];st.cars=[];st.fx=[];st.skids=[];st.hitCar=null;st.msg=null;st.deadRot=0;
-    st.cx=SW/2;st.hop=null;st.land=0;st.reveal=-1;st.peek=null;st.panic=0;st.shake=0;st.flash=0;st.slow=0};
+    st.cx=SW/2;st.hop=null;st.wind=null;st.land=0;st.reveal=-1;st.peek=null;st.panic=0;st.shake=0;st.flash=0;st.slow=0;
+    st.buffer=0;st.freezeTo=0;st.shownOut=0;st.outFrom=0;st.outTo=0;st.outT=1;st.lead=0};
   const step=()=>{if(st.phase!=='run')return;const d=D();if(st.k>=d.N)return;const lane=st.k;
-    st.phase='hop';upd();snd('click');st.cars=st.cars.filter(c=>c.lane!==lane);st.reveal=-1;st.peek=null;
+    st.phase='hop';upd();snd('click');st.reveal=-1;st.peek=null;
+    /* A beat of anticipation before the arc: the bird looks at the lane and
+       coils. The lane is only cleared of traffic at the moment of launch, so
+       the car you can see is still there while you are committing. */
+    /* Any car already running in that lane floors it as the bird coils, so it
+       reads as "it went past" instead of blinking out of existence. Only one
+       still sitting on the landing spot at launch is removed. */
+    for(const c of st.cars)if(c.lane===lane){c.vy*=3.4;c.wooshed=1}
+    st.wind={t:0,dur:S.fast?.05:.11,go:()=>{
+    snd('flap');st.cars=st.cars.filter(c=>c.lane!==lane||Math.abs(c.y-st.cy)>48);
     st.hop={t:0,dur:S.fast?.16:.3,x0:st.cx,x1:laneX(lane),done:()=>{
       if(st.lanes[lane]){const dir=laneDir(lane);st.hitCar={lane,dir,y:dir>0?-70:H+70,vy:dir*1100,col:pk(CARCOL),hit:false};return}
-      st.k++;st.phase='run';snd('gem');
-      st.fx.push({x:st.cx,y:st.cy-34,txt:fmMult(ckMult(d,st.k)),sz:15,c:'#6CFFA8',l:.85,l0:.85});
+      st.k++;st.phase='run';
+      /* the response scales with the stake: lane one gets a chirp, lane ten
+         gets a kick. Everything at one intensity means nothing stands out. */
+      const m=ckMult(d,st.k),big=m>=10?2:m>=4?1:0;
+      snd('gem',st.k);
+      st.freezeTo=performance.now()+(big?big*34:16)*MOTION;
+      st.shake=Math.max(st.shake,(big?3.5+big*2.5:1.2)*MOTION);
+      st.fx.push({x:st.cx,y:st.cy-34,txt:fmMult(m),sz:15+big*6,c:big?'#FFE9A8':'#6CFFA8',l:.85+big*.2,l0:.85+big*.2});
+      if(big)coins(st.cx,st.cy-10);
+      puff(st.cx,st.cy);
       if(!S.ckBest)S.ckBest={};if(st.k>(S.ckBest[CK.diff]||0)){S.ckBest[CK.diff]=st.k;save()}
       if(st.k===d.N){finish(true);return}
       upd();
       if(CK.auto){
         if(st.k>=CK.stop)setTimeout(()=>{if(st.alive&&st.phase==='run'&&st.k)finish(false)},260);
         else setTimeout(()=>{if(st.alive&&st.phase==='run')step()},S.fast?90:200);
-      }}}};
+      }}}}}};
   const finish=(full)=>{const d=D();const m=ckMult(d,st.k);const won=st.bet*m;
     st.phase='done';payout(won,`Chicken Cross ${fmMult(m)}`);
     celebrate(p,'chicken',st.bet,m,full?'made it across':st.k+' lanes');
     // the lane you walked away from, shown only now the choice is made
-    if(!full&&st.k<d.N){st.reveal=st.k;st.peek={blocked:!!st.lanes[st.k]}}
+    if(!full&&st.k<d.N){st.reveal=st.k;st.peek={blocked:!!st.lanes[st.k]};
+      if(st.lanes[st.k]){const lane=st.k,dir=laneDir(lane);
+        setTimeout(()=>{if(!st.alive||st.phase!=='done')return;
+          st.cars.push({lane,y:dir>0?-60:H+60,vy:dir*900,col:pk(CARCOL),wooshed:1});
+          snd('horn');st.shake=Math.max(st.shake,5*MOTION)},520)}}
     st.msg={t:full?'Made it across!':'Cashed out',s:`${fmMult(m)} · +${fm2(won)}`,col:'#3DDC6E'};
     pushHist(p,'chicken',fmMult(m),m>=10?'big':'w');logBet('chicken',st.bet,m);
     coins(st.cx,st.cy-14);if(full||m>=5)confetti(full?160:70);
@@ -3422,13 +3530,23 @@ VIEWS.chicken=p=>{
   const clampStop=()=>{CK.stop=clamp(Math.round(+stopIn.value||1),1,Math.max(1,D().N-1));stopIn.value=CK.stop};
   autoBtn.onclick=()=>{CK.auto=!CK.auto;autoBtn.classList.toggle('on',CK.auto);snd('click');if(CK.auto&&st.phase==='run')step()};
   stopIn.onchange=clampStop;stopIn.onblur=clampStop;
-  cv.onclick=()=>{if(st.phase==='hop')return;if(st.phase==='run')step();else goBtn.click()};
+  const tap=()=>{
+    if(st.wind)return;                                    // still coiling: the press that started it
+    if(st.phase==='hop'){st.buffer=performance.now();return}   // held, not dropped
+    if(st.phase==='run')step();else goBtn.click()};
+  cv.onclick=tap;
+  /* on a laptop the whole game is one key. Space and the right arrow cross,
+     C cashes out; both are ignored while a field has focus. */
+  const onKey=e=>{const t=e.target;if(t&&/input|textarea|select/i.test(t.tagName))return;
+    if(e.key===' '||e.key==='Spacebar'||e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();tap()}
+    else if(e.key==='c'||e.key==='C'){if(st.phase==='run'&&st.k){e.preventDefault();finish(false)}}};
+  addEventListener('keydown',onKey);
   $$('#ckDiff button',p).forEach(b=>b.onclick=()=>{if(st.phase==='run'||st.phase==='hop')return;CK.diff=b.dataset.d;
     $$('#ckDiff button',p).forEach(x=>x.classList.toggle('on',x===b));reset();st.phase='idle';snd('click');
     CK.stop=clamp(CK.stop,1,Math.max(1,D().N-1));if($('#ckStop',p))$('#ckStop',p).value=CK.stop;upd()});
   layout();upd();st.raf=requestAnimationFrame(loop);
   const onRz=()=>{if(kbOpen())return;layout()};addEventListener('resize',onRz);
-  cleanup=()=>{st.alive=false;cancelAnimationFrame(st.raf);removeEventListener('resize',onRz);
+  cleanup=()=>{st.alive=false;cancelAnimationFrame(st.raf);removeEventListener('resize',onRz);removeEventListener('keydown',onKey);
     if(st.phase==='run'||st.phase==='hop'){if(st.k){const m=ckMult(D(),st.k);payout(st.bet*m,'Chicken Cross cash out');
       logBet('chicken',st.bet,m);toast(`Chicken: cashed out at ${fmMult(m)} as you left`,'up')}
       else credit(st.bet,'Chicken Cross bet refunded');save()}};
